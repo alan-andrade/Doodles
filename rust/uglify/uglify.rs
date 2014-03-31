@@ -20,7 +20,7 @@ fn main () {
 
     for ugly in uglies.mut_iter() {
         ugly.ps.wait();
-        file.write(ugly.read());
+        file.write(ugly.read()).unwrap()
     }
 }
 
