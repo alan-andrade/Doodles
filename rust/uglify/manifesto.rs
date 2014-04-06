@@ -69,6 +69,20 @@ fn test_read () {
 }
 
 #[test]
+#[should_fail]
+fn test_read_fails_wrong_key () {
+    let json_str = &"{ \"wrong_key\": [\"js/jquery.js\", \"js/d3.js\"] }";
+    Manifesto::read(json_str);
+}
+
+#[test]
+#[should_fail]
+fn test_read_fails_when_no_array () {
+    let json_str = &"{ \"manifesto\": \"js/jquery.js\" }";
+    Manifesto::read(json_str);
+}
+
+#[test]
 fn test_new () {
     create_json();
     let manifesto = Manifesto::new();
