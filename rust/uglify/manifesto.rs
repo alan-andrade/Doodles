@@ -142,14 +142,17 @@ fn test_read_with_expand () {
     let test_path = ~Path::new("js/jquery.js");
     assert_eq!(paths[0].filename(), test_path.filename());
 
-    println!("{}", std::str::from_utf8(paths[1].filename().unwrap()))
     let test_path = ~Path::new("js/d3.js");
     assert_eq!(paths[1].filename(), test_path.filename());
 
-               //~"js/d3.js",
-               //~"js/jquery-2.1.0.js",
-               //~"js/raphael.js",
-               //~"js/underscore.js"]);
+    let test_path = ~Path::new("js/jquery-2.1.0.js");
+    assert_eq!(paths[2].filename(), test_path.filename());
+
+    let test_path = ~Path::new("js/raphael.js");
+    assert_eq!(paths[4].filename(), test_path.filename());
+
+    let test_path = ~Path::new("js/underscore.js");
+    assert_eq!(paths[5].filename(), test_path.filename());
 }
 
 #[test]
@@ -168,7 +171,7 @@ fn test_new () {
 static SHALLOW_MANIFESTO: &'static [u8] = bytes!("{\"manifesto\": [\"js/jquery.js\"]}");
 
 #[cfg(test)]
-fn create_json () { 
+fn create_json () {
     match File::create(&Path::new(FILENAME)) {
         Ok(mut f) => { f.write(SHALLOW_MANIFESTO).unwrap() },
         Err(e) => { fail!("{}", e) }
