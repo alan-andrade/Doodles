@@ -29,14 +29,16 @@ impl Manifesto {
             None => fail!("{} doesn't contain the key {}", FILENAME, KEYNAME)
         };
 
-        let filenames_list = json_leaf.as_list().unwrap_or_else(proc(){
-            fail!("The value of {} doesn't contain an array.", KEYNAME)
-        });
+        let filenames_list = match json_leaf.as_list() {
+            Some(d) => { d },
+            None => { fail!("The value of {} doesn't contain an array.", KEYNAME) }
+        };
 
-        let filenames = filenames_list.iter().map(proc(json_filename){
-            let filename = json_filename.as_string().unwrap_or_else(proc(){
-                fail!("Array contents aren't strings.");
-            });
+        let filenames = filenames_list.iter().map(|json_filename| {
+            let filename = match json_filename.as_string() {
+                Some(f) => { f },
+                None => { fail!("Array contents aren't strings.") }
+            };
             ~Path::new(filename)
         }).collect();
 
