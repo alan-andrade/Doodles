@@ -9,7 +9,7 @@ static FILENAME : &'static str  = "manifesto.json";
 static KEYNAME: &'static str    = "manifesto";
 
 struct Manifesto {
-    list: ~[~Path]
+    list: Vec<~Path>
 }
 
 impl Manifesto {
@@ -21,7 +21,7 @@ impl Manifesto {
         Manifesto::path().exists()
     }
 
-    fn read (data: &str) -> ~[~Path] {
+    fn read (data: &str) -> Vec<~Path> {
         let decoded_json = json::from_str(data).unwrap();
 
         let json_leaf = match decoded_json.find(&KEYNAME.to_owned()) {
@@ -45,8 +45,8 @@ impl Manifesto {
         Manifesto::expand(filenames)
     }
 
-    fn expand(paths: ~[~Path]) -> ~[~Path] {
-        let mut collector = ~[];
+    fn expand(paths: ~[~Path]) -> Vec<~Path> {
+        let mut collector = Vec::new();
         let mut is_global = false;
 
         for path in paths.iter() {
@@ -89,19 +89,19 @@ fn test_read () {
     let json_str = &"{ \"manifesto\": [\"js/jquery.js\"] }";
     let read = Manifesto::read(json_str);
     let test_path = ~Path::new("js/jquery.js");
-    assert_eq!(read[0].filename(), test_path.filename());
+    assert_eq!(read.get(0).filename(), test_path.filename());
 
 
     let json_str = &"{ \"manifesto\": [\"js/jquery.js\", \"js/d3.js\"] }";
     let read = Manifesto::read(json_str);
     let test_path = ~Path::new("js/jquery.js");
-    assert_eq!(read[0].filename(), test_path.filename());
+    assert_eq!(read.get(0).filename(), test_path.filename());
     let test_path = ~Path::new("js/d3.js");
-    assert_eq!(read[1].filename(), test_path.filename());
+    assert_eq!(read.get(1).filename(), test_path.filename());
 
 
     let json_str = &"{ \"manifesto\": [] }";
-    assert!(Manifesto::read(json_str) == ~[]);
+    assert!(Manifesto::read(json_str) == vec!());
 }
 
 #[test]
@@ -124,16 +124,16 @@ fn test_expand () {
     let man = Manifesto::expand(~[glob_path]);
 
     let test_path = ~Path::new("js/d3.js");
-    assert_eq!(man[0].filename(), test_path.filename());
+    assert_eq!(man.get(0).filename(), test_path.filename());
 
     let test_path = ~Path::new("js/jquery-2.1.0.js");
-    assert_eq!(man[1].filename(), test_path.filename());
+    assert_eq!(man.get(1).filename(), test_path.filename());
 
     let test_path = ~Path::new("js/raphael.js");
-    assert_eq!(man[2].filename(), test_path.filename());
+    assert_eq!(man.get(2).filename(), test_path.filename());
 
     let test_path = ~Path::new("js/underscore.js");
-    assert_eq!(man[3].filename(), test_path.filename());
+    assert_eq!(man.get(3).filename(), test_path.filename());
 }
 
 #[test]
@@ -142,16 +142,19 @@ fn test_read_with_expand () {
     let paths = Manifesto::read(json_str);
 
     let test_path = ~Path::new("js/jquery.js");
-    assert_eq!(paths[0].filename(), test_path.filename());
+    assert_eq!(paths.get(0).filename(), test_path.filename());
 
-    println!("{}", std::str::from_utf8(paths[1].filename().unwrap()))
     let test_path = ~Path::new("js/d3.js");
-    assert_eq!(paths[1].filename(), test_path.filename());
+    assert_eq!(paths.get(1).filename(), test_path.filename());
 
-               //~"js/d3.js",
-               //~"js/jquery-2.1.0.js",
-               //~"js/raphael.js",
-               //~"js/underscore.js"]);
+    let test_path = ~Path::new("js/jquery-2.1.0.js");
+    assert_eq!(paths.get(2).filename(), test_path.filename());
+
+    let test_path = ~Path::new("js/raphael.js");
+    assert_eq!(paths.get(3).filename(), test_path.filename());
+
+    let test_path = ~Path::new("js/underscore.js");
+    assert_eq!(paths.get(4).filename(), test_path.filename());
 }
 
 #[test]
@@ -159,7 +162,7 @@ fn test_new () {
     create_json();
     let manifesto = Manifesto::new();
     let test_path = Path::new("js/jquery.js");
-    assert_eq!(manifesto.list[0].filename(), test_path.filename());
+    assert_eq!(manifesto.list.get(0).filename(), test_path.filename());
     delete_json();
 }
 
@@ -170,7 +173,7 @@ fn test_new () {
 static SHALLOW_MANIFESTO: &'static [u8] = bytes!("{\"manifesto\": [\"js/jquery.js\"]}");
 
 #[cfg(test)]
-fn create_json () { 
+fn create_json () {
     match File::create(&Path::new(FILENAME)) {
         Ok(mut f) => { f.write(SHALLOW_MANIFESTO).unwrap() },
         Err(e) => { fail!("{}", e) }
