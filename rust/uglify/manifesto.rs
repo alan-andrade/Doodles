@@ -1,4 +1,3 @@
-extern crate serialize;
 // Manifesto
 //
 // This library will look for "manifesto.json" and dig into the
@@ -17,13 +16,12 @@ extern crate serialize;
 // The manifesto gives us information about which files should be
 // printed at the beginning of the resulting file.
 
-#[crate_id = "manifesto#0.1"]
-#[crate_type = "rlib"]
-#[feature(macro_rules)]
+#![crate_id = "manifesto#0.0.1"]
+#![crate_type = "rlib"]
 
+extern crate serialize;
 extern crate glob;
 
-use std::io::fs::File;
 use serialize::json;
 use glob::glob;
 
@@ -36,6 +34,8 @@ struct Manifesto {
 
 impl Manifesto {
     fn new () -> Manifesto {
+        use std::io::fs::File;
+
         let json_str: &str = match File::open(&Manifesto::path()).read_to_str() {
             Ok(s) => s,
             Err(e) => fail!("{}", e)
@@ -87,6 +87,14 @@ impl Manifesto {
         collector
     }
 
+    fn split<'a> (&'a self, cores: uint) -> Vec<&'a [~Path]> {
+        let mut collector = vec!();
+        for i in self.list.as_slice().chunks(cores) {
+            collector.push(i.clone());
+        }
+        collector
+    }
+
     fn path () -> Path {
         Path::new(FILENAME)
     }
@@ -100,7 +108,6 @@ impl Manifesto {
 mod test {
     use Manifesto;
     use FILENAME;
-    use std::io::fs::File;
 
     #[test]
     fn test_check () {
@@ -186,16 +193,15 @@ mod test {
 
     #[test]
     fn test_split_for_parallel_compilation () {
-        //macro_rules! m (
-            //($n:$expr) =>
-            //(Manifesto {
-                //list: range(0, $n).map(|i|
-                        //Path::new("js/" + i.to_str()))
-                          //.collect() })
-            //);
-
-        //let m = m!(1);
-        //assert_eq!(m.len(), 1);
+        let m = Manifesto {
+            list: vec!( ~Path::new("js/one.js"),
+                        ~Path::new("js/two.js"),
+                        ~Path::new("js/thr.js"))
+        };
+        assert_eq!(m.split(1).len(), 3);
+        assert_eq!(m.split(2).len(), 2);
+        assert_eq!(m.split(3).len(), 1);
+        assert_eq!(m.split(4).len(), 1);
     }
 
     #[test]
@@ -208,6 +214,7 @@ mod test {
     }
 
     fn create_json () {
+        use std::io::fs::File;
         match File::create(&Path::new(FILENAME)) {
             Ok(mut f) => {
                 let content = bytes!("{\"manifesto\": [\"js/jquery.js\"]}");
