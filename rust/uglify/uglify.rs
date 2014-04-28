@@ -1,7 +1,3 @@
-// Rust experiment to uglify multiple JS using maximum power of
-// concurrency.
-//
-
 use std::io::fs::{walk_dir, File};
 use std::io::{Process,TempDir};
 

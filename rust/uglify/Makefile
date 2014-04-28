@@ -1,6 +1,9 @@
 test:
 	rustc --test manifesto.rs
 	./manifesto
+	rustc manifesto.rs
+	rustc -L . buckets.rs
+	./buckets
 
 native: rust
 	@echo "Native compilation:"

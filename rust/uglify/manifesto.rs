@@ -28,12 +28,12 @@ use glob::glob;
 static FILENAME : &'static str  = "manifesto.json";
 static KEYNAME: &'static str    = "manifesto";
 
-struct Manifesto {
+pub struct Manifesto {
     list: Vec<~Path>
 }
 
 impl Manifesto {
-    fn new () -> Manifesto {
+    pub fn new () -> Manifesto {
         use std::io::fs::File;
 
         let json_str: &str = match File::open(&Manifesto::path()).read_to_str() {
@@ -44,7 +44,10 @@ impl Manifesto {
     }
 
     fn read (data: &str) -> Vec<~Path> {
-        let decoded_json = json::from_str(data).unwrap();
+        let decoded_json = match json::from_str(data) {
+            Ok(s) => s,
+            Err(e) => fail!("couldn't unwrap data. {}", e)
+        };
 
         let json_leaf = match decoded_json.find(&KEYNAME.to_owned()) {
             Some(i) => i,
@@ -87,7 +90,7 @@ impl Manifesto {
         collector
     }
 
-    fn split<'a> (&'a self, cores: uint) -> Vec<&'a [~Path]> {
+    pub fn split<'a> (&'a self, cores: uint) -> Vec<&'a [~Path]> {
         let mut collector = vec!();
         for i in self.list.as_slice().chunks(cores) {
             collector.push(i.clone());
@@ -99,7 +102,7 @@ impl Manifesto {
         Path::new(FILENAME)
     }
 
-    fn check () -> bool {
+    pub fn check () -> bool {
         Manifesto::path().exists()
     }
 }
