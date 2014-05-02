@@ -123,13 +123,13 @@ mod test {
 
     #[test]
     fn test_read () {
-        let json_str = &"{ \"manifesto\": [\"js/jquery.js\"] }";
+        let json_str = "{ \"manifesto\": [\"js/jquery.js\"] }";
         let read = Manifesto::read(json_str);
         let test_path = ~Path::new("js/jquery.js");
         assert_eq!(read.get(0).filename(), test_path.filename());
 
 
-        let json_str = &"{ \"manifesto\": [\"js/jquery.js\", \"js/d3.js\"] }";
+        let json_str = "{ \"manifesto\": [\"js/jquery.js\", \"js/d3.js\"] }";
         let read = Manifesto::read(json_str);
         let test_path = ~Path::new("js/jquery.js");
         assert_eq!(read.get(0).filename(), test_path.filename());
@@ -137,21 +137,21 @@ mod test {
         assert_eq!(read.get(1).filename(), test_path.filename());
 
 
-        let json_str = &"{ \"manifesto\": [] }";
+        let json_str = "{ \"manifesto\": [] }";
         assert!(Manifesto::read(json_str) == vec!());
     }
 
     #[test]
     #[should_fail]
     fn test_read_fails_wrong_key () {
-        let json_str = &"{ \"wrong_key\": [\"js/jquery.js\", \"js/d3.js\"] }";
+        let json_str = "{ \"wrong_key\": [\"js/jquery.js\", \"js/d3.js\"] }";
         Manifesto::read(json_str);
     }
 
     #[test]
     #[should_fail]
     fn test_read_fails_when_no_array () {
-        let json_str = &"{ \"manifesto\": \"js/jquery.js\" }";
+        let json_str = "{ \"manifesto\": \"js/jquery.js\" }";
         Manifesto::read(json_str);
     }
 
@@ -175,7 +175,7 @@ mod test {
 
     #[test]
     fn test_read_with_expand () {
-        let json_str = &"{ \"manifesto\": [\"js/jquery.js\", \"js/*.js\"] }";
+        let json_str = "{ \"manifesto\": [\"js/jquery.js\", \"js/*.js\"] }";
         let paths = Manifesto::read(json_str);
 
         let test_path = ~Path::new("js/jquery.js");
