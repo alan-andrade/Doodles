@@ -15,7 +15,6 @@
 //
 // The manifesto gives us information about which files should be
 // printed at the beginning of the resulting file.
-
 #![crate_id = "manifesto#0.0.1"]
 #![crate_type = "rlib"]
 
@@ -26,7 +25,7 @@ use serialize::json;
 use glob::glob;
 
 pub struct Manifesto {
-    list: Vec<~Path>
+    list: Vec<Path>
 }
 
 impl Manifesto {
@@ -42,7 +41,7 @@ impl Manifesto {
         Manifesto { list: Manifesto::read(json_str) }
     }
 
-    fn read (data: &str) -> Vec<~Path> {
+    fn read (data: &str) -> Vec<Path> {
         let decoded_json = match json::from_str(data) {
             Ok(s) => s,
             Err(e) => fail!("couldn't unwrap data. {}", e)
@@ -58,38 +57,38 @@ impl Manifesto {
             None => { fail!("The value of the manifesto key doesn't contain an array.") }
         };
 
-        let filenames = filenames_list.iter().map(|json_filename| {
+        let filenames : ~[Path] = filenames_list.iter().map(|json_filename| {
             let filename = match json_filename.as_string() {
                 Some(f) => { f },
                 None => { fail!("Array contents aren't strings.") }
             };
-            ~Path::new(filename)
+            Path::new(filename)
         }).collect();
 
         Manifesto::expand(filenames)
     }
 
-    fn expand(paths: ~[~Path]) -> Vec<~Path> {
+    fn expand(paths: &[Path]) -> Vec<Path> {
         let mut collector = Vec::new();
-        let mut is_global = false;
 
         for path in paths.iter() {
-            for expanded_path in glob(path.as_str().unwrap()) {
-                is_global = true;
-                collector.push(~expanded_path.clone());
-            }
+            if path.is_file() {
+                collector.push(path.clone());
+            } else {
+                for exp_path in glob(path.as_str().unwrap()) {
+                    let same_name = {|p:&&Path| p.filename() == exp_path.filename()};
 
-            if is_global == false {
-                collector.push((*path).clone());
+                    if paths.iter().find(same_name).is_none() {
+                       collector.push(exp_path.clone())
+                    }
+                }
             }
-
-            is_global = false
         }
 
         collector
     }
 
-    pub fn split<'a> (&'a self, cores: uint) -> Vec<&'a [~Path]> {
+    pub fn split<'a> (&'a self, cores: uint) -> Vec<&'a [Path]> {
         let mut collector = vec!();
         for i in self.list.as_slice().chunks(cores) {
             collector.push(i.clone());
@@ -104,17 +103,17 @@ mod test {
 
     #[test]
     fn test_read () {
-        let json_str = "{ \"manifesto\": [\"js/jquery.js\"] }";
+        let json_str = "{ \"manifesto\": [\"../js/d3.js\"] }";
         let read = Manifesto::read(json_str);
-        let test_path = ~Path::new("js/jquery.js");
+        let test_path = Path::new("../js/d3.js");
         assert_eq!(read.get(0).filename(), test_path.filename());
 
 
-        let json_str = "{ \"manifesto\": [\"js/jquery.js\", \"js/d3.js\"] }";
+        let json_str = "{ \"manifesto\": [\"../js/raphael.js\", \"../js/d3.js\"] }";
         let read = Manifesto::read(json_str);
-        let test_path = ~Path::new("js/jquery.js");
+        let test_path = Path::new("../js/raphael.js");
         assert_eq!(read.get(0).filename(), test_path.filename());
-        let test_path = ~Path::new("js/d3.js");
+        let test_path = Path::new("../js/d3.js");
         assert_eq!(read.get(1).filename(), test_path.filename());
 
 
@@ -138,49 +137,48 @@ mod test {
 
     #[test]
     fn test_expand () {
-        let glob_path = ~Path::new("js/*.js");
-        let man = Manifesto::expand(~[glob_path]);
+        let glob_path = Path::new("../js/*.js");
+        let man = Manifesto::expand([glob_path]);
 
-        let test_path = ~Path::new("js/d3.js");
+        let test_path = Path::new("js/d3.js");
         assert_eq!(man.get(0).filename(), test_path.filename());
 
-        let test_path = ~Path::new("js/jquery-2.1.0.js");
+        let test_path = Path::new("js/jquery-2.1.0.js");
         assert_eq!(man.get(1).filename(), test_path.filename());
 
-        let test_path = ~Path::new("js/raphael.js");
+        let test_path = Path::new("js/raphael.js");
         assert_eq!(man.get(2).filename(), test_path.filename());
 
-        let test_path = ~Path::new("js/underscore.js");
+        let test_path = Path::new("js/underscore.js");
         assert_eq!(man.get(3).filename(), test_path.filename());
     }
 
     #[test]
     fn test_read_with_expand () {
-        let json_str = "{ \"manifesto\": [\"js/jquery.js\", \"js/*.js\"] }";
+        let json_str = "{ \"manifesto\": [\"../js/jquery-2.1.0.js\", \"../js/*.js\"] }";
         let paths = Manifesto::read(json_str);
 
-        let test_path = ~Path::new("js/jquery.js");
+        assert_eq!(paths.len(), 4);
+
+        let test_path = ~Path::new("js/jquery-2.1.0.js");
         assert_eq!(paths.get(0).filename(), test_path.filename());
 
         let test_path = ~Path::new("js/d3.js");
         assert_eq!(paths.get(1).filename(), test_path.filename());
 
-        let test_path = ~Path::new("js/jquery-2.1.0.js");
+        let test_path = ~Path::new("js/raphael.js");
         assert_eq!(paths.get(2).filename(), test_path.filename());
 
-        let test_path = ~Path::new("js/raphael.js");
-        assert_eq!(paths.get(3).filename(), test_path.filename());
-
         let test_path = ~Path::new("js/underscore.js");
-        assert_eq!(paths.get(4).filename(), test_path.filename());
+        assert_eq!(paths.get(3).filename(), test_path.filename());
     }
 
     #[test]
     fn test_split_for_parallel_compilation () {
         let m = Manifesto {
-            list: vec!( ~Path::new("js/one.js"),
-                        ~Path::new("js/two.js"),
-                        ~Path::new("js/thr.js"))
+            list: vec!(Path::new("js/one.js"),
+                       Path::new("js/two.js"),
+                       Path::new("js/thr.js"))
         };
         assert_eq!(m.split(1).len(), 3);
         assert_eq!(m.split(2).len(), 2);
@@ -194,7 +192,7 @@ mod test {
 
         create_json(filename);
         let manifesto = Manifesto::new(filename);
-        let test_path = Path::new("js/jquery.js");
+        let test_path = Path::new("../js/d3.js");
         assert_eq!(manifesto.list.get(0).filename(), test_path.filename());
         delete_json(filename);
     }
@@ -203,7 +201,7 @@ mod test {
         use std::io::fs::File;
         match File::create(&Path::new(filename)) {
             Ok(mut f) => {
-                let content = bytes!("{\"manifesto\": [\"js/jquery.js\"]}");
+                let content = bytes!("{\"manifesto\": [\"../js/d3.js\"]}");
                 f.write(content).unwrap()
             },
             Err(e) => { fail!("{}", e) }

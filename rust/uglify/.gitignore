@@ -1,3 +1,4 @@
 uglify
 mylib.js
 native.js
+**.rlib
