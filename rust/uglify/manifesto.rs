@@ -25,18 +25,17 @@ extern crate glob;
 use serialize::json;
 use glob::glob;
 
-static FILENAME : &'static str  = "manifesto.json";
-static KEYNAME: &'static str    = "manifesto";
-
 pub struct Manifesto {
     list: Vec<~Path>
 }
 
 impl Manifesto {
-    pub fn new () -> Manifesto {
+    pub fn new (filename: &str) -> Manifesto {
         use std::io::fs::File;
 
-        let json_str: &str = match File::open(&Manifesto::path()).read_to_str() {
+        let file_path = ~Path::new(filename);
+
+        let json_str: &str = match File::open(file_path).read_to_str() {
             Ok(s) => s,
             Err(e) => fail!("{}", e)
         };
@@ -49,14 +48,14 @@ impl Manifesto {
             Err(e) => fail!("couldn't unwrap data. {}", e)
         };
 
-        let json_leaf = match decoded_json.find(&KEYNAME.to_owned()) {
+        let json_leaf = match decoded_json.find(&"manifesto".into_owned()) {
             Some(i) => i,
-            None => fail!("{} doesn't contain the key {}", FILENAME, KEYNAME)
+            None => fail!("json file doesn't contain the key manifesto")
         };
 
         let filenames_list = match json_leaf.as_list() {
             Some(d) => { d },
-            None => { fail!("The value of {} doesn't contain an array.", KEYNAME) }
+            None => { fail!("The value of the manifesto key doesn't contain an array.") }
         };
 
         let filenames = filenames_list.iter().map(|json_filename| {
@@ -97,29 +96,11 @@ impl Manifesto {
         }
         collector
     }
-
-    fn path () -> Path {
-        Path::new(FILENAME)
-    }
-
-    pub fn check () -> bool {
-        Manifesto::path().exists()
-    }
 }
 
 #[cfg(test)]
 mod test {
     use Manifesto;
-    use FILENAME;
-
-    #[test]
-    fn test_check () {
-        delete_json();
-        assert_eq!(Manifesto::check(), false);
-        create_json();
-        assert_eq!(Manifesto::check(), true);
-        delete_json();
-    }
 
     #[test]
     fn test_read () {
@@ -209,16 +190,18 @@ mod test {
 
     #[test]
     fn test_new () {
-        create_json();
-        let manifesto = Manifesto::new();
+        let filename = "tester.json";
+
+        create_json(filename);
+        let manifesto = Manifesto::new(filename);
         let test_path = Path::new("js/jquery.js");
         assert_eq!(manifesto.list.get(0).filename(), test_path.filename());
-        delete_json();
+        delete_json(filename);
     }
 
-    fn create_json () {
+    fn create_json (filename: &str) {
         use std::io::fs::File;
-        match File::create(&Path::new(FILENAME)) {
+        match File::create(&Path::new(filename)) {
             Ok(mut f) => {
                 let content = bytes!("{\"manifesto\": [\"js/jquery.js\"]}");
                 f.write(content).unwrap()
@@ -227,9 +210,9 @@ mod test {
         };
     }
 
-    fn delete_json () {
+    fn delete_json (filename: &str) {
         use std::io::process::Process;
-        match Process::new("rm", [FILENAME.to_owned()]) {
+        match Process::new("rm", [filename.to_owned()]) {
             Ok(mut child) => { child.wait(); },
             Err(_) => { println!("manifest.json didn't exist.") }
         };
