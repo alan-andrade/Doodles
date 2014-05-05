@@ -1,7 +1,5 @@
-test:
-	rustc --test manifesto.rs
-	./manifesto
-	rustc manifesto.rs
+build:
+	rustc manifesto/lib.rs
 	rustc -L . buckets.rs
 	./buckets
 
@@ -12,4 +10,3 @@ native: rust
 rust:
 	@echo "Rust parallel compilation:"
 	@echo `time rustc uglify.rs`
-
