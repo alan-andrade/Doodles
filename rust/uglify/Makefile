@@ -5,8 +5,8 @@ build:
 
 native: rust
 	@echo "Native compilation:"
-	@echo `time uglifyjs -meo native.js js/*`
+	@echo `time uglifyjs -mceo native.js js/*`
 
 rust:
 	@echo "Rust parallel compilation:"
-	@echo `time rustc uglify.rs`
+	@echo `time ./buckets`

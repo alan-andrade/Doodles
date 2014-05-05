@@ -1,9 +1,9 @@
 extern crate manifesto;
 
 use std::sync::mpsc_queue::{Queue, Data, Empty, Inconsistent};
-use std::sync::arc::UnsafeArc;
 use std::comm::channel;
 use std::io::Process;
+use std::io::fs::File;
 use manifesto::Manifesto;
 
 fn main () {
@@ -11,36 +11,45 @@ fn main () {
     let file_chunks = manifesto.split(1);
 
     let (tx, rx) = channel();
-    let queue = Queue::new();
-    let arc_queue = UnsafeArc::new(queue);
+    let mut queue = Queue::new();
 
     for files in file_chunks.iter() {
         let filenames = pluck_filenames(*files);
-
-        let arc_queue = arc_queue.clone();
-        spawn(proc() {
-            unsafe {
-                (*arc_queue.get()).push(Process::new("uglifyjs", filenames))
-            }
-        });
+        queue.push(Process::new("uglifyjs", filenames));
     }
 
     let mut i = 0;
     while i < file_chunks.len() {
-        match unsafe { (*arc_queue.get()).pop() } {
+        match queue.pop() {
             Data(d) => {
                 i = i + 1;
-                tx.send(d);
+                match d {
+                    Ok(mut pr) => {
+                        tx.send(pr);
+                    },
+                    Err(_) => {}
+                }
             },
             Empty|Inconsistent => {}
         }
     }
 
+    let mut file = File::create(&Path::new("with_channels.js"));
     for _i in range(0, file_chunks.len()) {
-        let output = rx.recv().unwrap().id();//.stdout.get_mut_ref().read_to_end();
-        println!("{:?}", output);
+        let mut pro = rx.recv();
+        let msg = pro.wait_with_output();
+        file.write(msg.output.as_slice());
     }
 
+    let mut final = File::create(&Path::new("with_channels_mangled.js"));
+    match Process::new("uglifyjs", &[
+                       "with_channels.js".to_owned(),
+                        "-m".to_owned()]) {
+        Ok(mut p) => {
+            final.write(p.wait_with_output().output.as_slice());
+        }
+        Err(f) => { fail!("{}", f) }
+    }
 }
 
 fn pluck_filenames (files: &[Path]) -> ~[~str] {
