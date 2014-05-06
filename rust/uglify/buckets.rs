@@ -1,6 +1,5 @@
 extern crate manifesto;
 
-use std::sync::mpsc_queue::{Queue, Data, Empty, Inconsistent};
 use std::comm::channel;
 use std::io::Process;
 use std::io::fs::File;
@@ -8,47 +7,22 @@ use manifesto::Manifesto;
 
 fn main () {
     let manifesto = Manifesto::new("manifesto.json");
-    let file_chunks = manifesto.split(1);
+    let file_chunks = manifesto.split(3);
 
     let (tx, rx) = channel();
-    let mut queue = Queue::new();
 
-    for files in file_chunks.iter() {
+    for (num, files) in file_chunks.iter().enumerate() {
+        println!("chunk: {}", num+1);
         let filenames = pluck_filenames(*files);
-        queue.push(Process::new("uglifyjs", filenames));
-    }
-
-    let mut i = 0;
-    while i < file_chunks.len() {
-        match queue.pop() {
-            Data(d) => {
-                i = i + 1;
-                match d {
-                    Ok(mut pr) => {
-                        tx.send(pr);
-                    },
-                    Err(_) => {}
-                }
-            },
-            Empty|Inconsistent => {}
-        }
+        println!("filenames: {:?}", filenames);
+        tx.send(Process::new("uglifyjs", filenames));
     }
 
     let mut file = File::create(&Path::new("with_channels.js"));
     for _i in range(0, file_chunks.len()) {
-        let mut pro = rx.recv();
+        let mut pro = rx.recv().unwrap();
         let msg = pro.wait_with_output();
         file.write(msg.output.as_slice());
-    }
-
-    let mut final = File::create(&Path::new("with_channels_mangled.js"));
-    match Process::new("uglifyjs", &[
-                       "with_channels.js".to_owned(),
-                        "-m".to_owned()]) {
-        Ok(mut p) => {
-            final.write(p.wait_with_output().output.as_slice());
-        }
-        Err(f) => { fail!("{}", f) }
     }
 }
 
