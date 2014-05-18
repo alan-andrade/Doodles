@@ -1,5 +1,5 @@
 build:
-	rustc manifesto/lib.rs
+	rustc manifest/lib.rs
 	rustc -L . buckets.rs
 	./buckets
 
