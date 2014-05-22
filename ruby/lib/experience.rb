@@ -1,18 +1,25 @@
 require 'playable'
+require 'version'
+require 'track'
+require 'level'
 
 class Experience
   attr_reader :params
 
   def initialize(config)
-    @tracks = Playable::PSet.new(config.fetch(:tracks, []))
-    @params = Playable::Params.new(config.fetch(:params))
+    @versions = Playable::PSet.new(config.fetch(:versions, []))
+    @params   = Playable::Params.new(config.fetch(:params))
+  end
+
+  def current_version
+    @versions.play(@params)
   end
 
   def current_track
-    @tracks.play(@params)
+    current_version.tracks.play(@params)
   end
 
   def current_level
-    current_track.current_level(@params)
+    current_track.levels.play(@params)
   end
 end
