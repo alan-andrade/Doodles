@@ -32,41 +32,41 @@ impl Manifest {
     pub fn new (filename: &str) -> Manifest {
         use std::io::fs::File;
 
-        let file_path = box Path::new(filename);
+        let file_path = Path::new(filename);
 
-        let json_str: &str = match File::open(file_path).read_to_str() {
-            Ok(s) => s,
-            Err(e) => fail!("{}", e)
+        let json_str = match File::open(&file_path).read_to_str() {
+            Ok(s)   => s,
+            Err(e)  => fail!("{}", e)
         };
-        Manifest { list: Manifest::read(json_str) }
+
+        Manifest { list: Manifest::read(json_str.as_slice()) }
     }
 
     fn read (data: &str) -> Vec<Path> {
-        let decoded_json = match json::from_str(data) {
-            Ok(s) => s,
-            Err(e) => fail!("couldn't unwrap data. {}", e)
+        let json = match json::from_str(data) {
+            Ok(s)   => s,
+            Err(e)  => fail!("{}", e)
         };
 
-        let keyname = &StrBuf::from_str("manifest");
-        let json_leaf = match decoded_json.find(keyname) {
-            Some(i) => i,
+        let key = StrBuf::from_str("manifest");
+        let value = match json.find(&key) {
+            Some(v) => {
+                match v.as_list() {
+                    Some(l) => l,
+                    None    => fail!("The value of the manifest key doesn't contain an array.")
+                }
+            },
             None => fail!("json file doesn't contain the key manifest")
         };
 
-        let filenames_list = match json_leaf.as_list() {
-            Some(d) => { d },
-            None => { fail!("The value of the manifest key doesn't contain an array.") }
-        };
-
-        let filenames : Vec<Path> = filenames_list.iter().map(|json_filename| {
-            let filename = match json_filename.as_string() {
-                Some(f) => { f },
-                None => { fail!("Array contents aren't strings.") }
-            };
-            Path::new(filename)
+        let paths: Vec<Path> = value.iter().map(|filename| {
+            match filename.as_string() {
+                Some(f) => Path::new(f),
+                None    => fail!("Array contents aren't strings.")
+            }
         }).collect();
 
-        Manifest::expand(&filenames)
+        Manifest::expand(&paths)
     }
 
     fn expand(paths: &Vec<Path>) -> Vec<Path> {
